@@ -13,7 +13,42 @@ const createToken = (newId) => {
 
 // login
 const login = async (req, res, next) => {
-    res.status(200).json({ message: "User logged in!"})
+
+    try {
+
+        // destructure email and password from req body (added by express.json() middleware)
+        const { email, password } = req.body;
+
+        // validation
+        if(!email || !password){
+            throw Error('All fields must be filled');
+        }
+
+        // check if email is registered
+        const user = await pool.query("SELECT * FROM users WHERE user_email = $1", [email]);
+
+        if(user.rowCount === 0){
+            throw Error("Incorrect Email");
+        }
+
+        const dbHashedPassword = await pool.query('SELECT password FROM users WHERE user_email = $1', [email]);
+
+        const match = await bcrypt.compare(password, dbHashedPassword.rows[0].password);
+        console.log(match)
+
+        if(!match){
+            throw Error('Incorrect Password')
+        }
+
+        // create token
+        const token = createToken(user.rows[0].user_id);
+
+        res.status(200).json({ user: user.rows[0].user_id, email, token });
+        
+    } catch (error) {
+        res.status(400).json({ message: error.message});
+    }
+
 }
 
 
@@ -60,7 +95,7 @@ const signup = async (req, res, next) => {
         const token = createToken(newUserId.rows[0].user_id);
 
         // sending newUser returned by psql query
-        res.status(201).json({ newUserId: newUserId.rows[0].user_id, email, token });
+        res.status(200).json({ newUserId: newUserId.rows[0].user_id, email, token });
         
     } catch (error) {
         res.status(400).json({ message: error.message});
