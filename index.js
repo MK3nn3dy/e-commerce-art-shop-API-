@@ -1,13 +1,12 @@
 // package imports
 const express = require('express');
-const pg = require('pg');
 const cors = require('cors');
-const pool = require('./dbconfig');
 
 // import routers
 const userRouter = require('./routes/userRouter');
 const basketRouter = require('./routes/basketRouter');
 const productRouter = require('./routes/productsRouter');
+const orderRouter = require('./routes/orderRoutes');
 
 // create app
 const app = express();
@@ -20,6 +19,7 @@ app.use(express.json());
 app.use('/users', userRouter);
 app.use('/baskets', basketRouter);
 app.use('/products', productRouter);
+app.use('/orders', orderRouter);
 
 // listen to port
 app.listen(5000, () => {

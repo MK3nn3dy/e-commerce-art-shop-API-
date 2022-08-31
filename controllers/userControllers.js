@@ -31,10 +31,11 @@ const login = async (req, res, next) => {
             throw Error("Incorrect Email");
         }
 
+        // get hashed password from db
         const dbHashedPassword = await pool.query('SELECT password FROM users WHERE user_email = $1', [email]);
 
+        //compare hashed db password with password entered
         const match = await bcrypt.compare(password, dbHashedPassword.rows[0].password);
-        console.log(match)
 
         if(!match){
             throw Error('Incorrect Password')
@@ -43,7 +44,7 @@ const login = async (req, res, next) => {
         // create token
         const token = createToken(user.rows[0].user_id);
 
-        res.status(200).json({ user: user.rows[0].user_id, email, token });
+        res.status(200).json({ user: user.rows[0].user_id, email, token, username: user.rows[0].username, address: user.rows[0].address});
         
     } catch (error) {
         res.status(400).json({ message: error.message});
@@ -89,13 +90,12 @@ const signup = async (req, res, next) => {
 
         // get new user_id using email
         const newUserId = await pool.query('SELECT user_id FROM users WHERE user_email = $1', [email])
-        console.log(newUserId.rows[0].user_id);
 
         // create token passing in new users ID
         const token = createToken(newUserId.rows[0].user_id);
 
         // sending newUser returned by psql query
-        res.status(200).json({ newUserId: newUserId.rows[0].user_id, email, token });
+        res.status(200).json({ user: newUserId.rows[0].user_id, email, token, username: newUserId.rows[0].username, address: user.rows[0].address });
         
     } catch (error) {
         res.status(400).json({ message: error.message});
@@ -112,7 +112,17 @@ const deleteUser = async (req, res, next) => {
 
 // update user
 const updateUser = async (req, res, next) => {
-    res.status(200).json({ message: "User " + req.params.id + " updated."})
+
+    try {
+        const { user_id, address }  = req.body;
+
+        const newAddress = await pool.query('UPDATE users SET address = $1 WHERE user_id = $2',[address, user_id]);
+
+        res.status(200).json({ message: 'Address successfully updated!'})
+    } catch (error) {
+        res.status(400).json({message: error.message});
+        console.log(error.message);
+    }
 }
 
 module.exports = {
